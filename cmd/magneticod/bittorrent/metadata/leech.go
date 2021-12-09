@@ -354,7 +354,16 @@ func (l *Leech) Do(deadline time.Time) {
 
 			piece := rExtDict.Piece
 			// metadata[piece * 2**14: piece * 2**14 + len(metadataPiece)] = metadataPiece is how it'd be done in Python
-			copy(l.metadata[piece*int(math.Pow(2, 14)):piece*int(math.Pow(2, 14))+len(metadataPiece)], metadataPiece)
+			metadataStart := piece * int(math.Pow(2, 14))
+			metadataEnd := metadataStart + len(metadataPiece)
+
+			// If there was a faulty transfer, and we received too few bytes.
+			if metadataEnd >= len(l.metadata) {
+				l.OnError(fmt.Errorf("metadata is smaller than it should have been"))
+				return
+			}
+
+			copy(l.metadata[metadataStart:metadataEnd], metadataPiece)
 			l.metadataReceived += uint(len(metadataPiece))
 
 			// ... if the length of @metadataPiece is less than 16kiB AND metadata is NOT
